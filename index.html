@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>学習ページ管理アプリ</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --card: #ffffff;
+      --text: #1f2937;
+      --sub: #6b7280;
+      --line: #e5e7eb;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --ok: #16a34a;
+      --ok-soft: #dcfce7;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --secondary: #eef2ff;
+      --secondary-text: #3730a3;
+      --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      padding: 16px 16px 130px;
+    }
+
+    .app {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(247, 248, 252, 0.94);
+      backdrop-filter: blur(10px);
+      padding: 8px 0 14px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin: 0 0 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .muted {
+      color: var(--sub);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0 0 12px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--sub);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input, select, button {
+      font: inherit;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 13px 14px;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 13px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 48px;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .secondary {
+      background: var(--secondary);
+      color: var(--secondary-text);
+    }
+
+    .danger {
+      background: var(--danger-soft);
+      color: #991b1b;
+    }
+
+    .tiny {
+      min-height: 40px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .drill-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      background: #f3f4f6;
+      color: #374151;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chip button {
+      min-height: auto;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      color: #6b7280;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .summary-box {
+      border-radius: 16px;
+      padding: 14px;
+      background: linear-gradient(135deg, #eff6ff, #ffffff);
+      border: 1px solid #dbeafe;
+    }
+
+    .summary-box strong {
+      display: block;
+      font-size: 24px;
+      margin-top: 4px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #60a5fa, #2563eb);
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+
+    .child-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .child-head {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #fcfcff;
+    }
+
+    .child-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .child-head p {
+      margin: 6px 0 0;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .task-item {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .task-main {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .task-main input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      margin-top: 4px;
+      accent-color: var(--ok);
+      flex: 0 0 auto;
+    }
+
+    .task-title {
+      font-weight: 700;
+      line-height: 1.45;
+      font-size: 16px;
+    }
+
+    .task-meta {
+      color: var(--sub);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .task-done {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+
+    .task-done .task-title {
+      text-decoration: line-through;
+      color: #4b5563;
+    }
+
+    .task-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--sub);
+      font-size: 14px;
+      padding: 18px 10px;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      background: #fafafa;
+    }
+
+    .footer-fixed {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(247, 248, 252, 0.96);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(229, 231, 235, 0.9);
+    }
+
+    .footer-fixed .inner {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--sub);
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 560px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .footer-fixed .inner {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>学習ページ管理</h1>
+      <p class="muted">曜日で分けずに、今週やるページだけを管理するシンプル版です。</p>
+    </div>
+
+    <section class="card">
+      <h2 class="section-title">1. 子どもの名前を登録</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="child1">子ども①</label>
+          <input id="child1" type="text" placeholder="例：あおい" />
+        </div>
+        <div>
+          <label for="child2">子ども②</label>
+          <input id="child2" type="text" placeholder="例：ひなた" />
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <button id="saveChildrenBtn" class="secondary">名前を保存</button>
+      </div>
+      <p class="note">2人分を固定で登録する形です。名前はあとから変更できます。</p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">2. 教材を登録</h2>
+      <div>
+        <label for="drillName">教材名</label>
+        <input id="drillName" type="text" placeholder="例：くもん国語A、計算ドリル、漢字ドリル" />
+      </div>
+      <div style="margin-top:12px;">
+        <button id="addDrillBtn" class="primary">教材を追加</button>
+      </div>
+      <div id="drillList" class="drill-chip-list"></div>
+      <p class="note">3〜5個くらいの教材を登録しておく想定です。</p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">3. 今週やるページを追加</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="planChild">子ども</label>
+          <select id="planChild"></select>
+        </div>
+        <div>
+          <label for="planDrill">教材</label>
+          <select id="planDrill"></select>
+        </div>
+        <div>
+          <label for="startPage">開始ページ</label>
+          <input id="startPage" type="number" inputmode="numeric" min="1" placeholder="例：12" />
+        </div>
+        <div>
+          <label for="endPage">終了ページ</label>
+          <input id="endPage" type="number" inputmode="numeric" min="1" placeholder="例：16" />
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <button id="addPagesBtn" class="primary">ページを追加</button>
+      </div>
+      <p class="note">12〜16と入れると、12・13・14・15・16ページが個別タスクとして追加されます。</p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">4. 今週の達成率</h2>
+      <div class="summary">
+        <div class="summary-box">
+          <div class="muted">全体の達成率</div>
+          <strong id="overallRate">0%</strong>
+          <div id="overallCount" class="muted">0 / 0 ページ完了</div>
+          <div class="progress-track">
+            <div id="overallBar" class="progress-bar"></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">「未完了を翌週へ繰り越し」を押すと、完了済みは消えて、未完了だけが次週分として残ります。</p>
+    </section>
+
+    <section class="stack" id="childrenTaskArea"></section>
+  </div>
+
+  <div class="footer-fixed">
+    <div class="inner">
+      <button id="clearCompletedBtn" class="secondary">完了済みを削除</button>
+      <button id="carryOverBtn" class="primary">未完了を翌週へ繰り越し</button>
+      <button id="resetWeekBtn" class="danger">今週のチェックをリセット</button>
+      <button id="clearAllBtn" class="danger">全データを削除</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "weekly-learning-planner-v2";
+
+    const defaultState = {
+      children: ["", ""],
+      drills: [],
+      tasks: []
+    };
+
+    let state = loadState();
+
+    const child1Input = document.getElementById("child1");
+    const child2Input = document.getElementById("child2");
+    const saveChildrenBtn = document.getElementById("saveChildrenBtn");
+
+    const drillNameInput = document.getElementById("drillName");
+    const addDrillBtn = document.getElementById("addDrillBtn");
+    const drillList = document.getElementById("drillList");
+
+    const planChild = document.getElementById("planChild");
+    const planDrill = document.getElementById("planDrill");
+    const startPageInput = document.getElementById("startPage");
+    const endPageInput = document.getElementById("endPage");
+    const addPagesBtn = document.getElementById("addPagesBtn");
+
+    const overallRate = document.getElementById("overallRate");
+    const overallCount = document.getElementById("overallCount");
+    const overallBar = document.getElementById("overallBar");
+    const childrenTaskArea = document.getElementById("childrenTaskArea");
+
+    const clearCompletedBtn = document.getElementById("clearCompletedBtn");
+    const carryOverBtn = document.getElementById("carryOverBtn");
+    const resetWeekBtn = document.getElementById("resetWeekBtn");
+    const clearAllBtn = document.getElementById("clearAllBtn");
+
+    function clone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return saved ? { ...clone(defaultState), ...saved } : clone(defaultState);
+      } catch (e) {
+        return clone(defaultState);
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function generateId() {
+      return Date.now() + "-" + Math.random().toString(16).slice(2);
+    }
+
+    function getChildName(index) {
+      return state.children[index] || "子ども" + (index + 1);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function render() {
+      child1Input.value = state.children[0] || "";
+      child2Input.value = state.children[1] || "";
+
+      renderDrills();
+      renderSelectors();
+      renderSummary();
+      renderChildrenTasks();
+
+      saveState();
+    }
+
+    function renderDrills() {
+      drillList.innerHTML = "";
+
+      if (!state.drills.length) {
+        drillList.innerHTML = '<div class="empty" style="width:100%;">まだ教材がありません</div>';
+        return;
+      }
+
+      state.drills.forEach((drill, index) => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.innerHTML = "<span>" + escapeHtml(drill) + "</span>";
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.innerHTML = "×";
+
+        delBtn.addEventListener("click", () => {
+          const used = state.tasks.some(task => task.drill === drill);
+          if (used) {
+            alert("この教材は今週のページに使われています。先にページを削除してください。");
+            return;
+          }
+
+          state.drills.splice(index, 1);
+          render();
+        });
+
+        chip.appendChild(delBtn);
+        drillList.appendChild(chip);
+      });
+    }
+
+    function renderSelectors() {
+      planChild.innerHTML = "";
+      planDrill.innerHTML = "";
+
+      state.children.forEach((name, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = getChildName(index);
+        planChild.appendChild(option);
+      });
+
+      if (!state.drills.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "先に教材を登録してください";
+        planDrill.appendChild(option);
+        return;
+      }
+
+      state.drills.forEach(drill => {
+        const option = document.createElement("option");
+        option.value = drill;
+        option.textContent = drill;
+        planDrill.appendChild(option);
+      });
+    }
+
+    function renderSummary() {
+      const total = state.tasks.length;
+      const done = state.tasks.filter(task => task.done).length;
+      const rate = total ? Math.round((done / total) * 100) : 0;
+
+      overallRate.textContent = rate + "%";
+      overallCount.textContent = done + " / " + total + " ページ完了";
+      overallBar.style.width = rate + "%";
+    }
+
+    function renderChildrenTasks() {
+      childrenTaskArea.innerHTML = "";
+
+      state.children.forEach((_, childIndex) => {
+        const childTasks = state.tasks
+          .filter(task => task.childIndex === childIndex)
+          .sort((a, b) => {
+            if (a.drill !== b.drill) {
+              return a.drill.localeCompare(b.drill, "ja");
+            }
+            return a.page - b.page;
+          });
+
+        const doneCount = childTasks.filter(task => task.done).length;
+        const rate = childTasks.length ? Math.round((doneCount / childTasks.length) * 100) : 0;
+
+        const card = document.createElement("section");
+        card.className = "child-card";
+
+        const head = document.createElement("div");
+        head.className = "child-head";
+        head.innerHTML = `
+          <h3>${escapeHtml(getChildName(childIndex))}</h3>
+          <p>${doneCount} / ${childTasks.length} ページ完了 ・ 達成率 ${rate}%</p>
+          <div class="progress-track">
+            <div class="progress-bar" style="width:${rate}%"></div>
+          </div>
+        `;
+
+        const list = document.createElement("div");
+        list.className = "task-list";
+
+        if (!childTasks.length) {
+          list.innerHTML = '<div class="empty">今週のページはまだありません</div>';
+        } else {
+          childTasks.forEach(task => {
+            const item = document.createElement("div");
+            item.className = "task-item" + (task.done ? " task-done" : "");
+            item.innerHTML = `
+              <div class="task-main">
+                <input type="checkbox" ${task.done ? "checked" : ""} aria-label="完了チェック" />
+                <div style="flex:1;">
+                  <div class="task-title">${escapeHtml(task.drill)} ${task.page}ページ</div>
+                  <div class="task-meta">${task.done ? "完了済み" : "未完了"}</div>
+                </div>
+              </div>
+              <div class="task-actions">
+                <button class="tiny danger" type="button">削除</button>
+              </div>
+            `;
+
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener("change", () => {
+              task.done = checkbox.checked;
+              render();
+            });
+
+            const delBtn = item.querySelector("button");
+            delBtn.addEventListener("click", () => {
+              state.tasks = state.tasks.filter(t => t.id !== task.id);
+              render();
+            });
+
+            list.appendChild(item);
+          });
+        }
+
+        card.appendChild(head);
+        card.appendChild(list);
+        childrenTaskArea.appendChild(card);
+      });
+    }
+
+    function saveChildren() {
+      state.children = [child1Input.value.trim(), child2Input.value.trim()];
+      render();
+      alert("子どもの名前を保存しました。");
+    }
+
+    function addDrill() {
+      const name = drillNameInput.value.trim();
+
+      if (!name) {
+        alert("教材名を入力してください。");
+        return;
+      }
+
+      if (state.drills.includes(name)) {
+        alert("同じ教材名はすでに登録されています。");
+        return;
+      }
+
+      state.drills.push(name);
+      drillNameInput.value = "";
+      render();
+    }
+
+    function addPages() {
+      if (!state.drills.length) {
+        alert("先に教材を登録してください。");
+        return;
+      }
+
+      const childIndex = Number(planChild.value);
+      const drill = planDrill.value;
+      const start = Number(startPageInput.value);
+      const end = Number(endPageInput.value);
+
+      if (!drill) {
+        alert("教材を選んでください。");
+        return;
+      }
+
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < 1) {
+        alert("開始ページと終了ページを正しく入力してください。");
+        return;
+      }
+
+      if (end < start) {
+        alert("終了ページは開始ページ以上にしてください。");
+        return;
+      }
+
+      if (end - start > 100) {
+        alert("一度に追加できるのは100ページまでにしています。");
+        return;
+      }
+
+      const pagesToAdd = [];
+
+      for (let page = start; page <= end; page++) {
+        const exists = state.tasks.some(task =>
+          task.childIndex === childIndex &&
+          task.drill === drill &&
+          task.page === page
+        );
+
+        if (!exists) {
+          pagesToAdd.push(page);
+        }
+      }
+
+      if (!pagesToAdd.length) {
+        alert("そのページはすでに追加されています。");
+        return;
+      }
+
+      pagesToAdd.forEach(page => {
+        state.tasks.push({
+          id: generateId(),
+          childIndex: childIndex,
+          drill: drill,
+          page: page,
+          done: false
+        });
+      });
+
+      startPageInput.value = "";
+      endPageInput.value = "";
+      render();
+    }
+
+    function clearCompleted() {
+      const doneCount = state.tasks.filter(task => task.done).length;
+
+      if (!doneCount) {
+        alert("削除できる完了済みページがありません。");
+        return;
+      }
+
+      const ok = confirm("完了済みのページだけを一括削除します。よろしいですか？");
+      if (!ok) return;
+
+      state.tasks = state.tasks.filter(task => !task.done);
+      render();
+    }
+
+    function carryOverToNextWeek() {
+      if (!state.tasks.length) {
+        alert("繰り越すページがありません。");
+        return;
+      }
+
+      const remaining = state.tasks.filter(task => !task.done).length;
+      const completed = state.tasks.filter(task => task.done).length;
+
+      if (!remaining) {
+        alert("未完了のページがありません。");
+        return;
+      }
+
+      const ok = confirm(
+        "未完了のページだけを翌週へ繰り越します。\n\n" +
+        "完了済み: " + completed + "件 は削除\n" +
+        "未完了: " + remaining + "件 を残します。\n\n" +
+        "よろしいですか？"
+      );
+
+      if (!ok) return;
+
+      state.tasks = state.tasks
+        .filter(task => !task.done)
+        .map(task => ({
+          ...task,
+          done: false
+        }));
+
+      render();
+      alert("未完了のページを翌週へ繰り越しました。");
+    }
+
+    function resetWeek() {
+      if (!state.tasks.length) {
+        alert("リセットするページがありません。");
+        return;
+      }
+
+      const ok = confirm("今週の完了チェックだけをすべて外します。ページ一覧は残ります。よろしいですか？");
+      if (!ok) return;
+
+      state.tasks = state.tasks.map(task => ({
+        ...task,
+        done: false
+      }));
+
+      render();
+    }
+
+    function clearAll() {
+      const ok = confirm("子どもの名前・教材・ページ一覧を全部削除します。元に戻せません。よろしいですか？");
+      if (!ok) return;
+
+      state = clone(defaultState);
+      render();
+    }
+
+    saveChildrenBtn.addEventListener("click", saveChildren);
+    addDrillBtn.addEventListener("click", addDrill);
+    addPagesBtn.addEventListener("click", addPages);
+    clearCompletedBtn.addEventListener("click", clearCompleted);
+    carryOverBtn.addEventListener("click", carryOverToNextWeek);
+    resetWeekBtn.addEventListener("click", resetWeek);
+    clearAllBtn.addEventListener("click", clearAll);
+
+    render();
+  </script>
+</body>
+</html>
