@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>月間学習プランナー</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f0f4ff;
+      --card: #ffffff;
+      --text: #1a1f36;
+      --sub: #7986a0;
+      --line: #e4e9f4;
+      --accent: #4361ee;
+      --accent2: #7209b7;
+      --accent-soft: #eef1ff;
+      --ok: #06d6a0;
+      --ok-soft: #e0faf5;
+      --warn: #f8a100;
+      --danger: #ef233c;
+      --danger-soft: #ffe4e8;
+      --radius: 20px;
+      --shadow: 0 8px 32px rgba(30,40,100,0.10);
+      --shadow-sm: 0 2px 10px rgba(30,40,100,0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overscroll-behavior: none;
+    }
+
+    /* HEADER */
+    .app-header {
+      background: var(--accent);
+      padding: 14px 16px;
+      padding-top: max(14px, env(safe-area-inset-top, 14px));
+      position: sticky; top: 0; z-index: 30;
+      box-shadow: 0 2px 16px rgba(67,97,238,0.25);
+    }
+    .header-inner {
+      max-width: 720px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .app-title { font-size: 18px; font-weight: 900; color: #fff; letter-spacing: 0.02em; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .sync-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.35); flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .sync-dot.syncing { background: #fde68a; animation: pulse 1s infinite; }
+    .sync-dot.ok      { background: #6ee7b7; }
+    .sync-dot.error   { background: #fca5a5; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .sync-label { font-size: 11px; color: rgba(255,255,255,0.78); font-weight: 700; }
+
+    .settings-btn {
+      width: 38px; height: 38px; border: none;
+      background: rgba(255,255,255,0.18); border-radius: 12px;
+      cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .settings-btn:active { background: rgba(255,255,255,0.32); }
+
+    /* MAIN */
+    .container { max-width: 720px; margin: 0 auto; padding: 14px 12px 40px; }
+
+    /* MONTH NAV */
+    .month-nav {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin-bottom: 10px;
+    }
+    .month-btn {
+      width: 38px; height: 38px; border: none;
+      background: var(--card); border-radius: 12px;
+      cursor: pointer; font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-sm); color: var(--accent);
+      transition: transform 0.1s;
+    }
+    .month-btn:active { transform: scale(0.92); }
+    .month-label {
+      font-size: 20px; font-weight: 900; color: var(--text);
+      min-width: 140px; text-align: center; letter-spacing: 0.02em;
+    }
+
+    /* CHILD TABS */
+    .child-tabs {
+      display: flex; gap: 8px; background: var(--card);
+      border-radius: 16px; padding: 5px;
+      box-shadow: var(--shadow-sm); margin-bottom: 12px;
+    }
+    .child-tab {
+      flex: 1; padding: 10px 8px; border: none;
+      border-radius: 12px; background: transparent;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      color: var(--sub); transition: all 0.2s; font-family: inherit;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .child-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; box-shadow: 0 4px 14px rgba(67,97,238,0.35);
+    }
+
+    /* SUMMARY */
+    .summary-bar {
+      background: var(--card); border-radius: 16px;
+      padding: 12px 14px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: var(--shadow-sm); border: 1px solid var(--line);
+    }
+    .summary-emoji { font-size: 28px; }
+    .summary-info { flex: 1; min-width: 0; }
+    .summary-label { font-size: 11px; color: var(--sub); font-weight: 700; letter-spacing: 0.04em; }
+    .summary-rate {
+      font-size: 22px; font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .progress-track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; transition: width 0.4s; }
+    .progress-fill.complete { background: linear-gradient(90deg, #06d6a0, #00b388); }
+    .summary-right { text-align: right; flex-shrink: 0; }
+    .summary-right .label { font-size: 11px; color: var(--sub); }
+    .summary-right .val { font-size: 17px; font-weight: 900; }
+
+    /* CALENDAR */
+    .calendar { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--line); }
+    .cal-header { display: grid; grid-template-columns: repeat(7,1fr); background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+    .cal-dow { text-align: center; padding: 9px 0; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.8); letter-spacing: 0.06em; }
+    .cal-dow:first-child { color: #fca5a5; }
+    .cal-dow:last-child  { color: #93c5fd; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); border-top: 1px solid var(--line); }
+    .cal-cell {
+      border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      min-height: 64px; padding: 6px 4px 5px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: background 0.12s; user-select: none;
+    }
+    .cal-cell:nth-child(7n) { border-right: none; }
+    .cal-cell:active { background: var(--accent-soft); }
+    .cal-cell.empty { background: #f8f9ff; cursor: default; pointer-events: none; }
+    .day-num { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; border-radius: 50%; flex-shrink: 0; }
+    .cal-cell.today .day-num { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff !important; box-shadow: 0 2px 8px rgba(67,97,238,0.4); }
+    .cal-cell.sunday  .day-num { color: #ef4444; }
+    .cal-cell.saturday .day-num { color: #3b82f6; }
+    .day-bar { width: 80%; height: 5px; border-radius: 3px; background: var(--line); }
+    .day-bar.planned  { background: #c7d2fe; }
+    .day-bar.partial  { background: var(--warn); }
+    .day-bar.complete { background: var(--ok); }
+    .day-count { font-size: 9px; color: var(--sub); font-weight: 700; line-height: 1; }
+
+    /* OVERLAY / SHEETS */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(10,15,50,0.50);
+      z-index: 50; display: none;
+      align-items: flex-end; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .overlay.open { display: flex; }
+    .bottom-sheet {
+      background: var(--bg); border-radius: 26px 26px 0 0;
+      width: 100%; max-width: 720px; max-height: 88vh;
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+    }
+    .overlay.open .bottom-sheet { transform: translateY(0); }
+    .sheet-handle { width: 44px; height: 4px; background: #d1d5e8; border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
+    .sheet-topbar { padding: 10px 16px 0; flex-shrink: 0; }
+    .sheet-date { font-size: 19px; font-weight: 900; }
+    .sheet-child-tabs { display: flex; gap: 6px; padding: 10px 16px 0; flex-shrink: 0; }
+    .sheet-ctab { padding: 8px 18px; border: none; border-radius: 10px; background: var(--line); font-size: 13px; font-weight: 700; cursor: pointer; color: var(--sub); transition: all 0.18s; font-family: inherit; }
+    .sheet-ctab.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 3px 10px rgba(67,97,238,0.3); }
+    .sheet-body { overflow-y: auto; flex: 1; padding: 12px 14px calc(16px + env(safe-area-inset-bottom,0px)); -webkit-overflow-scrolling: touch; }
+
+    /* SETTINGS SHEET */
+    .settings-sheet {
+      background: var(--bg); border-radius: 26px 26px 0 0;
+      width: 100%; max-width: 720px; max-height: 88vh;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 0 14px calc(24px + env(safe-area-inset-bottom,0px));
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+    }
+    .overlay.open .settings-sheet { transform: translateY(0); }
+    .settings-handle { width: 44px; height: 4px; background: #d1d5e8; border-radius: 2px; margin: 12px auto 16px; }
+    .settings-title { font-size: 20px; font-weight: 900; margin-bottom: 16px; }
+    .settings-card { background: var(--card); border-radius: 18px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+    .settings-card h3 { font-size: 13px; font-weight: 700; color: var(--sub); letter-spacing: 0.05em; margin-bottom: 12px; }
+
+    /* FORM ELEMENTS */
+    .add-form { background: var(--card); border-radius: 18px; padding: 14px; margin-bottom: 14px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+    .field-label { display: block; font-size: 11px; font-weight: 700; color: var(--sub); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .field-group { margin-bottom: 10px; }
+
+    select, textarea, input[type="text"], input[type="password"] {
+      width: 100%; border: 1.5px solid var(--line); background: var(--bg);
+      border-radius: 12px; padding: 10px 12px;
+      font-size: 15px; color: var(--text); font-family: inherit;
+      appearance: none;
+    }
+    select:focus, textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(67,97,238,0.12);
+    }
+    textarea { resize: none; min-height: 70px; line-height: 1.6; }
+
+    .btn {
+      border: none; border-radius: 12px; padding: 12px 16px;
+      font-weight: 700; cursor: pointer; font-family: inherit;
+      font-size: 15px; min-height: 46px;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    .btn:active { transform: scale(0.97); opacity: 0.9; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 4px 14px rgba(67,97,238,0.35); }
+    .btn-secondary { background: var(--accent-soft); color: var(--accent); }
+    .btn-danger    { background: var(--danger-soft); color: var(--danger); }
+    .btn-block { width: 100%; }
+    .btn-sm { padding: 9px 14px; font-size: 13px; min-height: 38px; }
+
+    .input-row { display: flex; gap: 8px; align-items: stretch; }
+
+    /* TASK ITEMS */
+    .task-list { display: flex; flex-direction: column; gap: 8px; }
+    .task-item { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 12px 12px 12px 14px; transition: border-color 0.15s, background 0.15s; }
+    .task-item.done { background: var(--ok-soft); border-color: #86efac; }
+    .task-row { display: flex; gap: 10px; align-items: flex-start; }
+    .task-checkbox { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--ok); flex-shrink: 0; cursor: pointer; }
+    .task-info { flex: 1; min-width: 0; }
+    .drill-badge { display: inline-block; font-size: 10px; font-weight: 700; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 2px 8px; margin-bottom: 4px; letter-spacing: 0.03em; }
+    .task-content { font-size: 15px; font-weight: 500; line-height: 1.55; word-break: break-all; white-space: pre-wrap; }
+    .task-item.done .task-content { text-decoration: line-through; color: var(--sub); }
+    .task-del { flex-shrink: 0; background: none; border: none; color: #ccc; font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 0 2px 4px; }
+    .task-del:active { color: var(--danger); }
+    .empty-msg { text-align: center; color: var(--sub); font-size: 14px; line-height: 2; padding: 20px 10px; }
+
+    /* CHIPS */
+    .chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 6px 10px 6px 12px; font-size: 13px; font-weight: 700; }
+    .chip-x { background: none; border: none; color: #a5b4fc; font-size: 15px; cursor: pointer; line-height: 1; padding: 0; }
+    .chip-x:active { color: var(--danger); }
+
+    /* SYNC SECTION */
+    .sync-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; background: var(--bg);
+      border-radius: 12px; margin-bottom: 10px;
+      border: 1.5px solid var(--line);
+    }
+    .sync-row-icon { font-size: 18px; }
+    .sync-row-text { flex: 1; }
+    .sync-row-title { font-size: 13px; font-weight: 700; }
+    .sync-row-sub { font-size: 11px; color: var(--sub); margin-top: 1px; }
+
+    .code-box {
+      background: #1a1f36; color: #a5f3fc;
+      border-radius: 12px; padding: 12px 14px;
+      font-size: 12px; font-family: monospace;
+      word-break: break-all; line-height: 1.7;
+      margin-bottom: 8px; cursor: pointer;
+    }
+
+    .step { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+    .step-num { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; min-width: 20px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 11px; font-weight: 900; }
+
+    .divider { border: none; border-top: 1px solid var(--line); margin: 4px 0 12px; }
+    .note { font-size: 12px; color: var(--sub); margin-top: 6px; line-height: 1.6; }
+
+    @media (max-width: 380px) {
+      .cal-cell { min-height: 54px; }
+      .day-num { font-size: 12px; width: 24px; height: 24px; }
+      .day-count { font-size: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="app-title">📚 月間学習プランナー</div>
+    <div class="header-right">
+      <div class="sync-dot" id="syncDot"></div>
+      <div class="sync-label" id="syncLabel">未接続</div>
+      <button class="settings-btn" id="settingsBtn">⚙️</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="month-nav">
+    <button class="month-btn" id="prevMonthBtn">‹</button>
+    <div class="month-label" id="monthLabel"></div>
+    <button class="month-btn" id="nextMonthBtn">›</button>
+  </div>
+  <div class="child-tabs" id="childTabs"></div>
+  <div class="summary-bar">
+    <div class="summary-emoji">📊</div>
+    <div class="summary-info">
+      <div class="summary-label" id="summaryLabel">今月の達成率</div>
+      <div class="summary-rate" id="summaryRate">0%</div>
+      <div class="progress-track"><div class="progress-fill" id="summaryBar" style="width:0%"></div></div>
+    </div>
+    <div class="summary-right">
+      <div class="label">完了 / 合計</div>
+      <div class="val" id="summaryCount">0 / 0</div>
+    </div>
+  </div>
+  <div class="calendar">
+    <div class="cal-header">
+      <div class="cal-dow">日</div><div class="cal-dow">月</div><div class="cal-dow">火</div>
+      <div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<!-- DAY OVERLAY -->
+<div class="overlay" id="dayOverlay">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-topbar"><div class="sheet-date" id="sheetDate"></div></div>
+    <div class="sheet-child-tabs" id="sheetChildTabs"></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+
+<!-- SETTINGS OVERLAY -->
+<div class="overlay" id="settingsOverlay">
+  <div class="settings-sheet">
+    <div class="settings-handle"></div>
+    <div class="settings-title">⚙️ 設定</div>
+
+    <div class="settings-card">
+      <h3>子どもの名前</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input type="text" id="child1Input" placeholder="子ども① 例：あおい" />
+        <input type="text" id="child2Input" placeholder="子ども② 例：ひなた" />
+      </div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-primary btn-block" id="saveChildrenBtn">名前を保存</button>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3>教材を管理</h3>
+      <div class="input-row">
+        <input type="text" id="drillInput" placeholder="例：くもん国語A" />
+        <button class="btn btn-primary btn-sm" id="addDrillBtn" style="flex-shrink:0;padding:10px 16px;">追加</button>
+      </div>
+      <div class="chip-list" id="drillChips"></div>
+      <p class="note">登録した教材は計画追加時に選択できます。</p>
+    </div>
+
+    <!-- CLOUD SYNC -->
+    <div class="settings-card">
+      <h3>☁️ クラウド同期</h3>
+
+      <div id="syncStatusRow"></div>
+
+      <!-- SETUP (未接続時) -->
+      <div id="syncSetupArea">
+        <div style="margin-bottom:12px;">
+          <div class="step"><span class="step-num">1</span><span><a href="https://jsonbin.io" target="_blank" style="color:var(--accent);">jsonbin.io</a> で無料アカウントを作成</span></div>
+          <div class="step"><span class="step-num">2</span><span>「API Keys」ページで <strong>Master Key</strong> を発行・コピー</span></div>
+          <div class="step"><span class="step-num">3</span><span>以下に貼り付けて「接続する」を押す</span></div>
+        </div>
+        <label class="field-label">Master Key</label>
+        <div class="input-row" style="margin-bottom:6px;">
+          <input type="password" id="apiKeyInput" placeholder="$2a$10$..." autocomplete="off" />
+          <button class="btn btn-primary btn-sm" id="connectBtn" style="flex-shrink:0;">接続する</button>
+        </div>
+        <p class="note">キーはこのデバイスの localStorage にのみ保存されます。</p>
+      </div>
+
+      <!-- CODE (接続済み時) -->
+      <div id="syncCodeArea" style="display:none;">
+        <label class="field-label" style="margin-bottom:6px;">同期コード（別デバイス用）</label>
+        <div class="code-box" id="syncCodeBox">読み込み中...</div>
+        <button class="btn btn-secondary btn-sm btn-block" id="copySyncCodeBtn">📋 同期コードをコピー</button>
+        <p class="note">別デバイスで「同期コードで接続」に貼り付けると同じデータを共有できます。</p>
+
+        <div style="margin-top:14px;">
+          <label class="field-label">別デバイスの同期コードで接続</label>
+          <div class="input-row">
+            <input type="text" id="importCodeInput" placeholder="同期コードを貼り付け" />
+            <button class="btn btn-secondary btn-sm" id="importCodeBtn" style="flex-shrink:0;">接続</button>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <button class="btn btn-danger btn-sm btn-block" id="disconnectBtn">同期を解除する</button>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+    <div class="settings-card">
+      <h3>⚠️ データ管理</h3>
+      <button class="btn btn-danger btn-block" id="clearAllBtn">全データを削除</button>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-secondary btn-block" id="closeSettingsBtn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════ CONSTANTS ═══════════ */
+const DATA_KEY = "monthly-planner-v2-data";
+const SYNC_KEY = "monthly-planner-v2-sync";
+const JSONBIN  = "https://api.jsonbin.io/v3";
+const WEEKDAYS = ["日","月","火","水","木","金","土"];
+
+const DEFAULT_DATA = {
+  children: ["子ども①", "子ども②"],
+  drills: [],
+  plans: {},
+  _ts: 0
+};
+
+/* ═══════════ STATE ═══════════ */
+let data        = loadData();
+let syncCfg     = loadSyncCfg();   // { apiKey, binId } | null
+let viewYear    = new Date().getFullYear();
+let viewMonth   = new Date().getMonth();
+let activeChild = 0;
+let selDate     = null;
+let sheetChild  = 0;
+let pushTimer   = null;
+let pollTimer   = null;
+let syncing     = false;
+
+/* ═══════════ LOCAL STORAGE ═══════════ */
+function loadData() {
+  try { const s = JSON.parse(localStorage.getItem(DATA_KEY)); if(s) return {...clone(DEFAULT_DATA),...s}; } catch(_){}
+  return clone(DEFAULT_DATA);
+}
+function saveLocal() {
+  data._ts = Date.now();
+  localStorage.setItem(DATA_KEY, JSON.stringify(data));
+}
+function loadSyncCfg() {
+  try { return JSON.parse(localStorage.getItem(SYNC_KEY)); } catch(_){} return null;
+}
+function saveSyncCfg() {
+  if(syncCfg) localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg));
+  else localStorage.removeItem(SYNC_KEY);
+}
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function uid()    { return Date.now()+"-"+Math.random().toString(36).slice(2,7); }
+
+/* ═══════════ JSONBIN API ═══════════ */
+async function jbReq(method, path, body) {
+  const res = await fetch(JSONBIN + path, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": syncCfg.apiKey,
+      "X-Bin-Private": "false"
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+async function createBin(apiKey) {
+  const tmp = syncCfg; syncCfg = { apiKey, binId: "" };
+  const res = await jbReq("POST", "/b", { ...clone(DEFAULT_DATA), _ts: Date.now() });
+  syncCfg = tmp;
+  return res.metadata.id;
+}
+
+async function pushBin() {
+  if (!syncCfg || syncing) return;
+  syncing = true; setDot("syncing","同期中…");
+  try   { await jbReq("PUT", `/b/${syncCfg.binId}`, data); setDot("ok","同期済み"); }
+  catch (e) { setDot("error","同期エラー"); console.warn(e); }
+  finally   { syncing = false; }
+}
+
+async function pullBin() {
+  if (!syncCfg) return;
+  try {
+    const res    = await jbReq("GET", `/b/${syncCfg.binId}/latest`);
+    const remote = res.record;
+    if (remote && (remote._ts || 0) > (data._ts || 0)) {
+      data = remote; saveLocal(); render();
+    }
+    setDot("ok","同期済み");
+  } catch(e) { setDot("error","同期エラー"); console.warn(e); }
+}
+
+/* schedule push 1.5s after last write */
+function schedulePush() {
+  saveLocal();
+  if (!syncCfg) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushBin, 1500);
+}
+
+function startPoll() {
+  clearInterval(pollTimer);
+  if (syncCfg) pollTimer = setInterval(pullBin, 60000);
+}
+
+/* ═══════════ SYNC CONNECT / DISCONNECT ═══════════ */
+async function connectNew(apiKey) {
+  setDot("syncing","接続中…");
+  try {
+    const oldCfg = syncCfg;
+    syncCfg = { apiKey, binId: "_tmp" };
+    const binId = await (async () => {
+      const res = await fetch(JSONBIN + "/b", {
+        method: "POST",
+        headers: { "Content-Type":"application/json","X-Master-Key":apiKey,"X-Bin-Private":"false" },
+        body: JSON.stringify({ ...clone(DEFAULT_DATA), _ts: Date.now() })
+      });
+      if(!res.ok) throw new Error(res.status);
+      const j = await res.json(); return j.metadata.id;
+    })();
+    syncCfg = { apiKey, binId };
+    saveSyncCfg();
+    await pushBin();
+    startPoll();
+    renderSyncUI();
+    alert("✅ クラウドに接続しました！\n同期コードを別デバイスに共有してください。");
+  } catch(e) {
+    syncCfg = null; saveSyncCfg();
+    setDot("error","接続失敗");
+    alert("接続に失敗しました。Master Key を確認してください。\n"+e.message);
+  }
+}
+
+async function connectCode(code) {
+  try {
+    const dec  = decodeURIComponent(escape(atob(code.trim())));
+    const sep  = dec.indexOf("::");
+    if(sep<0) throw new Error("形式が正しくありません");
+    const apiKey = dec.slice(0, sep);
+    const binId  = dec.slice(sep+2);
+    setDot("syncing","接続中…");
+    const res = await fetch(JSONBIN + `/b/${binId}/latest`, {
+      headers:{"X-Master-Key":apiKey,"X-Bin-Private":"false"}
+    });
+    if(!res.ok) throw new Error(res.status);
+    const remote = (await res.json()).record;
+    syncCfg = { apiKey, binId }; saveSyncCfg();
+    if(remote && (remote._ts||0) > (data._ts||0)) { data=remote; saveLocal(); render(); }
+    else await pushBin();
+    startPoll(); renderSyncUI();
+    alert("✅ 接続しました！データを同期しました。");
+  } catch(e) {
+    syncCfg = null; saveSyncCfg();
+    setDot("error","接続失敗");
+    alert("同期コードが正しくないか接続できませんでした。\n"+e.message);
+  }
+}
+
+function disconnect() {
+  if(!confirm("同期を解除します。\nデータはこのデバイスに残ります。よろしいですか？")) return;
+  clearInterval(pollTimer);
+  syncCfg = null; saveSyncCfg();
+  renderSyncUI(); setDot("","未接続");
+}
+
+/* ═══════════ SYNC DOT ═══════════ */
+function setDot(state, label) {
+  document.getElementById("syncDot").className  = "sync-dot "+(state||"");
+  document.getElementById("syncLabel").textContent = label||"";
+}
+
+function renderSyncUI() {
+  const row       = document.getElementById("syncStatusRow");
+  const setupArea = document.getElementById("syncSetupArea");
+  const codeArea  = document.getElementById("syncCodeArea");
+  if (syncCfg) {
+    row.innerHTML = `
+      <div class="sync-row">
+        <div class="sync-row-icon">🟢</div>
+        <div class="sync-row-text">
+          <div class="sync-row-title">同期が有効です</div>
+          <div class="sync-row-sub">Bin ID: ${syncCfg.binId}</div>
+        </div>
+      </div>`;
+    setupArea.style.display = "none";
+    codeArea.style.display  = "block";
+    const code = btoa(unescape(encodeURIComponent(syncCfg.apiKey+"::"+syncCfg.binId)));
+    document.getElementById("syncCodeBox").textContent = code;
+  } else {
+    row.innerHTML = `
+      <div class="sync-row">
+        <div class="sync-row-icon">⚪️</div>
+        <div class="sync-row-text">
+          <div class="sync-row-title">未接続</div>
+          <div class="sync-row-sub">設定するとデバイス間でデータを共有できます</div>
+        </div>
+      </div>`;
+    setupArea.style.display = "block";
+    codeArea.style.display  = "none";
+    setDot("","未接続");
+  }
+}
+
+/* ═══════════ HELPERS ═══════════ */
+function childName(i) { return data.children[i] || `子ども${i+1}`; }
+function dStr(y,m,d)  { return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
+function getTasks(date,ci) { return data.plans[date]?.[String(ci)] || []; }
+function setTasks(date,ci,tasks) {
+  if(!data.plans[date]) data.plans[date]={};
+  data.plans[date][String(ci)]=tasks;
+  schedulePush();
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* ═══════════ RENDER ═══════════ */
+function render() { renderChildTabs(); renderCalendar(); renderSummary(); }
+
+function renderChildTabs() {
+  const el = document.getElementById("childTabs"); el.innerHTML="";
+  data.children.forEach((_,i)=>{
+    const b=document.createElement("button");
+    b.className="child-tab"+(i===activeChild?" active":"");
+    b.textContent=childName(i);
+    b.addEventListener("click",()=>{ activeChild=i; render(); });
+    el.appendChild(b);
+  });
+}
+
+function renderSummary() {
+  const days=new Date(viewYear,viewMonth+1,0).getDate();
+  let tot=0,dn=0;
+  for(let d=1;d<=days;d++){const t=getTasks(dStr(viewYear,viewMonth,d),activeChild);tot+=t.length;dn+=t.filter(x=>x.done).length;}
+  const rate=tot?Math.round((dn/tot)*100):0;
+  document.getElementById("summaryLabel").textContent=`${childName(activeChild)}の今月の達成率`;
+  document.getElementById("summaryRate").textContent=rate+"%";
+  document.getElementById("summaryCount").textContent=`${dn} / ${tot}`;
+  const bar=document.getElementById("summaryBar");
+  bar.style.width=rate+"%";
+  bar.className="progress-fill"+(rate===100&&tot>0?" complete":"");
+}
+
+function renderCalendar() {
+  document.getElementById("monthLabel").textContent=`${viewYear}年${viewMonth+1}月`;
+  const grid=document.getElementById("calGrid"); grid.innerHTML="";
+  const fdow=new Date(viewYear,viewMonth,1).getDay();
+  const days=new Date(viewYear,viewMonth+1,0).getDate();
+  const now=new Date();
+  const todayKey=dStr(now.getFullYear(),now.getMonth(),now.getDate());
+
+  for(let i=0;i<fdow;i++){const e=document.createElement("div");e.className="cal-cell empty";grid.appendChild(e);}
+
+  for(let d=1;d<=days;d++){
+    const key=dStr(viewYear,viewMonth,d);
+    const tasks=getTasks(key,activeChild);
+    const tot=tasks.length, dn=tasks.filter(t=>t.done).length;
+    const dow=new Date(viewYear,viewMonth,d).getDay();
+    const cell=document.createElement("div");
+    const cls=["cal-cell"];
+    if(key===todayKey) cls.push("today");
+    if(dow===0) cls.push("sunday");
+    if(dow===6) cls.push("saturday");
+    cell.className=cls.join(" ");
+
+    const num=document.createElement("div"); num.className="day-num"; num.textContent=d;
+    cell.appendChild(num);
+
+    if(tot>0){
+      const bar=document.createElement("div");
+      bar.className="day-bar "+(dn===tot?"complete":dn>0?"partial":"planned");
+      cell.appendChild(bar);
+      const cnt=document.createElement("div"); cnt.className="day-count"; cnt.textContent=`${dn}/${tot}`;
+      cell.appendChild(cnt);
+    }
+
+    cell.addEventListener("click",()=>openDaySheet(key,d,dow));
+    grid.appendChild(cell);
+  }
+}
+
+/* ═══════════ DAY SHEET ═══════════ */
+function openDaySheet(key,day,dow){
+  selDate=key; sheetChild=activeChild;
+  document.getElementById("sheetDate").textContent=`${viewMonth+1}月${day}日（${WEEKDAYS[dow]}）の学習`;
+  renderSheetTabs(); renderSheetBody();
+  document.getElementById("dayOverlay").classList.add("open");
+}
+
+function renderSheetTabs(){
+  const el=document.getElementById("sheetChildTabs"); el.innerHTML="";
+  data.children.forEach((_,i)=>{
+    const b=document.createElement("button");
+    b.className="sheet-ctab"+(i===sheetChild?" active":"");
+    b.textContent=childName(i);
+    b.addEventListener("click",()=>{ sheetChild=i; renderSheetTabs(); renderSheetBody(); });
+    el.appendChild(b);
+  });
+}
+
+function renderSheetBody(){
+  const body=document.getElementById("sheetBody"); body.innerHTML="";
+
+  const opts=data.drills.length
+    ?data.drills.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join("")
+    :`<option value="">（教材未登録）</option>`;
+
+  const form=document.createElement("div"); form.className="add-form";
+  form.innerHTML=`
+    <div class="field-group">
+      <label class="field-label">教材</label>
+      <select id="sheetDrill">${opts}</select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">学習内容（自由入力）</label>
+      <textarea id="sheetContent" placeholder="例：P.12〜15の問題&#10;漢字「海・山・川」を3回ずつ&#10;九九の7の段を暗唱" rows="3"></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" id="sheetAddBtn">＋ 追加する</button>
+  `;
+  body.appendChild(form);
+  document.getElementById("sheetAddBtn").addEventListener("click", addSheetTask);
+
+  const tasks=getTasks(selDate,sheetChild);
+  if(!tasks.length){
+    const em=document.createElement("div"); em.className="empty-msg";
+    em.innerHTML="📝 まだ学習計画がありません<br><small>上のフォームから追加してください</small>";
+    body.appendChild(em); return;
+  }
+
+  const list=document.createElement("div"); list.className="task-list";
+  tasks.forEach((task,idx)=>{
+    const item=document.createElement("div");
+    item.className="task-item"+(task.done?" done":"");
+    const badge=task.drill?`<span class="drill-badge">${esc(task.drill)}</span><br>`:"";
+    item.innerHTML=`
+      <div class="task-row">
+        <input type="checkbox" class="task-checkbox" ${task.done?"checked":""} />
+        <div class="task-info">${badge}<div class="task-content">${esc(task.content)}</div></div>
+        <button class="task-del">×</button>
+      </div>`;
+    item.querySelector(".task-checkbox").addEventListener("change",e=>{
+      const t=getTasks(selDate,sheetChild); t[idx].done=e.target.checked;
+      setTasks(selDate,sheetChild,t); renderSheetBody(); renderCalendar(); renderSummary();
+    });
+    item.querySelector(".task-del").addEventListener("click",()=>{
+      const t=getTasks(selDate,sheetChild); t.splice(idx,1);
+      setTasks(selDate,sheetChild,t); renderSheetBody(); renderCalendar(); renderSummary();
+    });
+    list.appendChild(item);
+  });
+  body.appendChild(list);
+}
+
+function addSheetTask(){
+  const drill  =(document.getElementById("sheetDrill")?.value||"").trim();
+  const content=(document.getElementById("sheetContent")?.value||"").trim();
+  if(!content){ alert("学習内容を入力してください。"); return; }
+  const tasks=getTasks(selDate,sheetChild);
+  tasks.push({id:uid(),drill,content,done:false});
+  setTasks(selDate,sheetChild,tasks);
+  document.getElementById("sheetContent").value="";
+  renderSheetBody(); renderCalendar(); renderSummary();
+}
+
+/* ═══════════ SETTINGS ═══════════ */
+function openSettings(){
+  document.getElementById("child1Input").value=data.children[0]||"";
+  document.getElementById("child2Input").value=data.children[1]||"";
+  document.getElementById("apiKeyInput").value=syncCfg?.apiKey||"";
+  renderDrillChips(); renderSyncUI();
+  document.getElementById("settingsOverlay").classList.add("open");
+}
+
+function renderDrillChips(){
+  const el=document.getElementById("drillChips"); el.innerHTML="";
+  if(!data.drills.length){ el.innerHTML='<div style="font-size:13px;color:var(--sub);">まだ教材がありません</div>'; return; }
+  data.drills.forEach((d,i)=>{
+    const chip=document.createElement("div"); chip.className="chip";
+    chip.innerHTML=`<span>${esc(d)}</span>`;
+    const x=document.createElement("button"); x.className="chip-x"; x.textContent="×";
+    x.addEventListener("click",()=>{ data.drills.splice(i,1); schedulePush(); renderDrillChips(); });
+    chip.appendChild(x); el.appendChild(chip);
+  });
+}
+
+/* ═══════════ EVENT LISTENERS ═══════════ */
+document.getElementById("prevMonthBtn").addEventListener("click",()=>{ viewMonth--; if(viewMonth<0){viewMonth=11;viewYear--;} render(); });
+document.getElementById("nextMonthBtn").addEventListener("click",()=>{ viewMonth++; if(viewMonth>11){viewMonth=0;viewYear++;} render(); });
+
+document.getElementById("dayOverlay").addEventListener("click",e=>{ if(e.target===document.getElementById("dayOverlay")){document.getElementById("dayOverlay").classList.remove("open");render();} });
+
+document.getElementById("settingsBtn").addEventListener("click", openSettings);
+document.getElementById("closeSettingsBtn").addEventListener("click",()=>document.getElementById("settingsOverlay").classList.remove("open"));
+document.getElementById("settingsOverlay").addEventListener("click",e=>{ if(e.target===document.getElementById("settingsOverlay"))document.getElementById("settingsOverlay").classList.remove("open"); });
+
+document.getElementById("saveChildrenBtn").addEventListener("click",()=>{
+  const n1=document.getElementById("child1Input").value.trim();
+  const n2=document.getElementById("child2Input").value.trim();
+  data.children=[n1||"子ども①",n2||"子ども②"];
+  schedulePush(); render();
+  document.getElementById("settingsOverlay").classList.remove("open");
+});
+
+document.getElementById("addDrillBtn").addEventListener("click",()=>{
+  const inp=document.getElementById("drillInput"), name=inp.value.trim();
+  if(!name){alert("教材名を入力してください。");return;}
+  if(data.drills.includes(name)){alert("同じ教材名がすでにあります。");return;}
+  data.drills.push(name); inp.value=""; schedulePush(); renderDrillChips();
+});
+document.getElementById("drillInput").addEventListener("keydown",e=>{ if(e.key==="Enter") document.getElementById("addDrillBtn").click(); });
+
+document.getElementById("clearAllBtn").addEventListener("click",()=>{
+  if(!confirm("全データを削除します。元に戻せません。よろしいですか？")) return;
+  data=clone(DEFAULT_DATA); schedulePush(); render();
+  document.getElementById("settingsOverlay").classList.remove("open");
+});
+
+/* SYNC */
+document.getElementById("connectBtn").addEventListener("click",async()=>{
+  const k=document.getElementById("apiKeyInput").value.trim();
+  if(!k){alert("Master Key を入力してください。");return;}
+  await connectNew(k);
+});
+
+document.getElementById("copySyncCodeBtn").addEventListener("click",()=>{
+  const code=document.getElementById("syncCodeBox").textContent;
+  navigator.clipboard?.writeText(code)
+    .then(()=>alert("✅ コピーしました！別デバイスのアプリ設定に貼り付けてください。"))
+    .catch(()=>prompt("以下の同期コードをコピーしてください：",code));
+});
+document.getElementById("syncCodeBox").addEventListener("click",()=>document.getElementById("copySyncCodeBtn").click());
+
+document.getElementById("importCodeBtn").addEventListener("click",async()=>{
+  const code=document.getElementById("importCodeInput").value.trim();
+  if(!code){alert("同期コードを貼り付けてください。");return;}
+  await connectCode(code);
+});
+
+document.getElementById("disconnectBtn").addEventListener("click", disconnect);
+
+/* ═══════════ INIT ═══════════ */
+(async()=>{
+  if(syncCfg){
+    setDot("syncing","同期中…");
+    await pullBin();
+    startPoll();
+  }
+  render();
+})();
+</script>
+</body>
+</html>
